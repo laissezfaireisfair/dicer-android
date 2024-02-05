@@ -1,4 +1,4 @@
-package dicer.android.ui.theme
+package laiss.dicer.android.ui.theme
 
 import android.app.Activity
 import android.os.Build

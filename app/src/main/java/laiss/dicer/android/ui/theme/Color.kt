@@ -1,4 +1,4 @@
-package dicer.android.ui.theme
+package laiss.dicer.android.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

@@ -1,4 +1,4 @@
-package dicer.android
+package laiss.dicer.android
 
 import org.junit.Test
 
