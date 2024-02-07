@@ -33,4 +33,8 @@ class SelectDicesViewModel : ViewModel() {
             ?.takeIf { it > 0 }
             ?.let { it - 1 } ?: 0  // TODO: Validate input
     }
+
+    fun calculate() {
+        TODO("Not yet implemented")
+    }
 }

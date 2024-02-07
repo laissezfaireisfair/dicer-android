@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -20,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -39,7 +41,7 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
         countByDice = selectDicesViewModel.countByDice.collectAsState().value,
         onBonusChanged = { selectDicesViewModel.updateBonus(it) },
         onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
-        onOkClicked = { TODO("Show calculation result") },
+        onOkClicked = { selectDicesViewModel.calculate() },
         onDiceCountMinusClicked = { selectDicesViewModel.increaseDiceCount(it) },
         onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
         onDiceCountPlusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
@@ -126,6 +128,7 @@ fun NumberParameterSetter(
             OutlinedTextField(
                 modifier = modifier.width(70.dp),
                 value = "$value",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onChanged
             )
         }
@@ -155,6 +158,7 @@ fun DiceCountSetter(
             OutlinedTextField(
                 value = "$count",
                 modifier = modifier.width(70.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onCountChanged
             )
 
