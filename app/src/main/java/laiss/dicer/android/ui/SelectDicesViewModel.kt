@@ -2,39 +2,46 @@ package laiss.dicer.android.ui
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import laiss.dicer.android.model.Dice
 
 class SelectDicesViewModel : ViewModel() {
-    var bonus = MutableStateFlow(0)
-        private set
-    var threshold = MutableStateFlow(0)
-        private set
-    var countByDice = MutableStateFlow(hashMapOf(Dice.D6 to 1))
-        private set
+    private val _uiState = MutableStateFlow(SelectDicesScreenState())
+    val uiState: StateFlow<SelectDicesScreenState> = _uiState.asStateFlow()
 
     fun updateBonus(bonusStr: String) {
-        bonus.value = bonusStr.toInt()  // TODO: Validate input
+        _uiState.update { it.copy(bonus = bonusStr.toInt()) }  // TODO: Validate input
     }
 
     fun updateThreshold(thresholdStr: String) {
-        threshold.value = thresholdStr.toInt()  // TODO: Validate input
+        _uiState.update { it.copy(threshold = thresholdStr.toInt()) }  // TODO: Validate input
     }
 
     fun updateDiceCount(dice: Dice, count: String) {
-        countByDice.value[dice] = count.toInt()  // TODO: Validate input
+        _uiState.update {
+            it.copy(countByDice = it.countByDice.plus(dice to count.toInt()))  // TODO: Validate input
+        }
     }
 
     fun increaseDiceCount(dice: Dice) {
-        countByDice.value[dice] = (countByDice.value[dice] ?: 0) + 1  // TODO: Validate input
+        val oldCount = uiState.value.countByDice[dice] ?: 0
+        updateDiceCount(dice, (oldCount + 1).toString())
     }
 
     fun decreaseDiceCount(dice: Dice) {
-        countByDice.value[dice] = countByDice.value[dice]
-            ?.takeIf { it > 0 }
-            ?.let { it - 1 } ?: 0  // TODO: Validate input
+        val oldCount = uiState.value.countByDice[dice].takeIf { it != null && it > 0 } ?: 0
+        updateDiceCount(dice, (oldCount - 1).toString())
     }
 
     fun calculate() {
         TODO("Not yet implemented")
     }
 }
+
+data class SelectDicesScreenState(
+    val bonus: Int = 0,
+    val threshold: Int = 20,
+    val countByDice: Map<Dice, Int> = mapOf(Dice.D6 to 1)
+)

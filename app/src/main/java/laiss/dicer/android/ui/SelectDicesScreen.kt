@@ -36,15 +36,15 @@ fun SelectDicesScreenPreview() {
 @Composable
 fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) {
     SelectDicesLayout(
-        bonus = selectDicesViewModel.bonus.collectAsState().value,
-        threshold = selectDicesViewModel.threshold.collectAsState().value,
-        countByDice = selectDicesViewModel.countByDice.collectAsState().value,
+        bonus = selectDicesViewModel.uiState.collectAsState().value.bonus,
+        threshold = selectDicesViewModel.uiState.collectAsState().value.threshold,
+        countByDice = selectDicesViewModel.uiState.collectAsState().value.countByDice,
         onBonusChanged = { selectDicesViewModel.updateBonus(it) },
         onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
         onOkClicked = { selectDicesViewModel.calculate() },
-        onDiceCountMinusClicked = { selectDicesViewModel.increaseDiceCount(it) },
+        onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
         onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
-        onDiceCountPlusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
+        onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
         modifier = Modifier
             .statusBarsPadding()
             .safeDrawingPadding()
@@ -56,7 +56,7 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
 fun SelectDicesLayout(
     bonus: Int,
     threshold: Int,
-    countByDice: HashMap<Dice, Int>,
+    countByDice: Map<Dice, Int>,
     onBonusChanged: (String) -> Unit,
     onThresholdChanged: (String) -> Unit,
     onOkClicked: () -> Unit,
@@ -127,7 +127,7 @@ fun NumberParameterSetter(
 
             OutlinedTextField(
                 modifier = modifier.width(70.dp),
-                value = "$value",
+                value = value.toString(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onChanged
             )
@@ -156,7 +156,7 @@ fun DiceCountSetter(
             Button(onClick = onMinusClicked) { Text(text = "-") }
 
             OutlinedTextField(
-                value = "$count",
+                value = count.toString(),
                 modifier = modifier.width(70.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onCountChanged
