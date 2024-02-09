@@ -12,11 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -203,12 +199,24 @@ fun ResultDialog(
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)) {
-            Column(modifier = modifier) {
-                Text(text = checkDescription, modifier = modifier)
-                Text(text = "Expectation: $expectation", modifier = modifier)
-                Text(text = "Deviation: $deviation", modifier = modifier)
-                Text(text = "Probability: ${"%.2f".format(Locale.ROOT, probability)}", modifier = modifier)
+            Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+                OutlinedCard(modifier = modifier) {
+                    Text(text = checkDescription, modifier = modifier.padding(5.dp))
+                }
+                ResultEntry(name = "Expectation", value = expectation, modifier = modifier)
+                ResultEntry(name = "Deviation", value = deviation, modifier = modifier)
+                ResultEntry(name = "Probability", value = probability, modifier = modifier)
             }
+        }
+    }
+}
+
+@Composable
+fun ResultEntry(name: String, value: Double, modifier: Modifier) {
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(text = "$name:", modifier = modifier)
+        OutlinedCard(modifier = modifier) {
+            Text(text = "%.2f".format(Locale.ROOT, value), modifier = modifier.padding(5.dp))
         }
     }
 }
