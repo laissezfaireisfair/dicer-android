@@ -47,7 +47,8 @@ class DiceSet(private val dicesAndCounts: List<Pair<Dice, Int>>) {
     }
 
     override fun toString(): String = dicesAndCounts
-        .map { (dice, count) -> "$count$dice" }
+        .filter { (_, count) -> count > 0 }
+        .map { (dice, count) -> if (count > 1) "$count$dice" else "$dice"}
         .joinToString(" + ") { it }
 }
 
@@ -68,7 +69,7 @@ class Stats(private val diceSet: DiceSet, private val bonus: Int) {
         }
     }
 
-    override fun toString() = "$diceSet + $bonus"
+    override fun toString() = if (bonus > 0) "$diceSet + $bonus" else "$diceSet"
 }
 
 fun Stats.countPassThresholdProbability(threshold: Int): Double =

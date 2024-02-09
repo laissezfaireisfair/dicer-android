@@ -17,15 +17,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import laiss.dicer.android.model.Dice
+import java.util.*
 
 @Composable
 @Preview(showBackground = true, showSystemUi = true)
@@ -35,21 +36,36 @@ fun SelectDicesScreenPreview() {
 
 @Composable
 fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) {
+    val results = remember { mutableStateOf<Results?>(null) }
+    val modifier = Modifier
+        .statusBarsPadding()
+        .safeDrawingPadding()
+        .padding(3.dp)
+
     SelectDicesLayout(
         bonus = selectDicesViewModel.uiState.collectAsState().value.bonus,
         threshold = selectDicesViewModel.uiState.collectAsState().value.threshold,
         countByDice = selectDicesViewModel.uiState.collectAsState().value.countByDice,
         onBonusChanged = { selectDicesViewModel.updateBonus(it) },
         onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
-        onOkClicked = { selectDicesViewModel.calculate() },
+        onOkClicked = { results.value = selectDicesViewModel.getResults() },
         onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
         onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
         onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
-        modifier = Modifier
-            .statusBarsPadding()
-            .safeDrawingPadding()
-            .padding(3.dp)
+        modifier = modifier
     )
+
+    val resultsValue = results.value
+    if (resultsValue != null) {
+        ResultDialog(
+            onDismissRequest = { results.value = null },
+            checkDescription = resultsValue.checkDescription,
+            deviation = resultsValue.deviation,
+            expectation = resultsValue.expectation,
+            probability = resultsValue.probability,
+            modifier = modifier
+        )
+    }
 }
 
 @Composable
@@ -71,27 +87,17 @@ fun SelectDicesLayout(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            NumberParameterSetter(
-                name = "Bonus",
-                value = bonus,
-                onChanged = onBonusChanged,
-                modifier = modifier
-            )
+            NumberParameterSetter(name = "Bonus", value = bonus, onChanged = onBonusChanged, modifier = modifier)
 
             NumberParameterSetter(
-                name = "Threshold",
-                value = threshold,
-                onChanged = onThresholdChanged,
-                modifier = modifier
+                name = "Threshold", value = threshold, onChanged = onThresholdChanged, modifier = modifier
             )
         }
 
         LazyColumn(
-            modifier = modifier.padding(horizontal = 15.dp),
-            verticalArrangement = Arrangement.SpaceAround
+            modifier = modifier.padding(horizontal = 15.dp), verticalArrangement = Arrangement.SpaceAround
         ) {
-            items(Dice.entries)
-            {
+            items(Dice.entries) {
                 DiceCountSetter(
                     dice = it,
                     count = countByDice[it] ?: 0,
@@ -109,14 +115,10 @@ fun SelectDicesLayout(
 
 @Composable
 fun NumberParameterSetter(
-    name: String,
-    value: Int,
-    onChanged: (String) -> Unit,
-    modifier: Modifier = Modifier
+    name: String, value: Int, onChanged: (String) -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+        modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
     ) {
         Row(
             modifier = modifier,
@@ -129,7 +131,7 @@ fun NumberParameterSetter(
                 modifier = modifier.width(70.dp),
                 value = value.toString(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                onValueChange = onChanged
+                onValueChange = onChanged,
             )
         }
     }
@@ -145,8 +147,7 @@ fun DiceCountSetter(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier,
-        elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
+        modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -165,6 +166,49 @@ fun DiceCountSetter(
             Text(modifier = modifier, text = dice.name)
 
             Button(onClick = onPlusClicked, modifier = modifier) { Text(text = "+") }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ResultDialogPreview() {
+    with(
+        Results(
+            checkDescription = "2d4 + d6 + d8 + d12 + 5 | 20",
+            expectation = 24.5,
+            deviation = 7.3,
+            probability = 0.79
+        )
+    ) {
+        ResultDialog(
+            onDismissRequest = {},
+            checkDescription = checkDescription,
+            expectation = expectation,
+            deviation = deviation,
+            probability = probability,
+            modifier = Modifier.padding(3.dp)
+        )
+    }
+}
+
+@Composable
+fun ResultDialog(
+    onDismissRequest: () -> Unit,
+    checkDescription: String,
+    expectation: Double,
+    deviation: Double,
+    probability: Double,
+    modifier: Modifier = Modifier,
+) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)) {
+            Column(modifier = modifier) {
+                Text(text = checkDescription, modifier = modifier)
+                Text(text = "Expectation: $expectation", modifier = modifier)
+                Text(text = "Deviation: $deviation", modifier = modifier)
+                Text(text = "Probability: ${"%.2f".format(Locale.ROOT, probability)}", modifier = modifier)
+            }
         }
     }
 }
