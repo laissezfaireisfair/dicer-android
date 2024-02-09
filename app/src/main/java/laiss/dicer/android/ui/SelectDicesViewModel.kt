@@ -16,16 +16,16 @@ class SelectDicesViewModel : ViewModel() {
     val uiState: StateFlow<SelectDicesScreenState> = _uiState.asStateFlow()
 
     fun updateBonus(bonusStr: String) {
-        _uiState.update { it.copy(bonus = bonusStr.toIntOrNull() ?: 0) }
+        _uiState.update { it.copy(bonus = bonusStr.toIntOrNull()) }
     }
 
     fun updateThreshold(thresholdStr: String) {
-        _uiState.update { it.copy(threshold = thresholdStr.toIntOrNull() ?: 0) }
+        _uiState.update { it.copy(threshold = thresholdStr.toIntOrNull()) }
     }
 
     fun updateDiceCount(dice: Dice, count: String) {
         _uiState.update {
-            it.copy(countByDice = it.countByDice.plus(dice to (count.toIntOrNull() ?: 0)))
+            it.copy(countByDice = it.countByDice.plus(dice to (count.toIntOrNull())))
         }
     }
 
@@ -44,20 +44,20 @@ class SelectDicesViewModel : ViewModel() {
             checkDescription = "$this | ${uiState.value.threshold}",
             expectation = expectation,
             deviation = sqrt(dispersion),
-            probability = countPassThresholdProbability(uiState.value.threshold)
+            probability = countPassThresholdProbability(uiState.value.threshold ?: 0)
         )
     }
 }
 
 data class SelectDicesScreenState(
-    val bonus: Int = 0,
-    val threshold: Int = 3,
-    val countByDice: Map<Dice, Int> = mapOf(Dice.D6 to 1)
+    val bonus: Int? = 0,
+    val threshold: Int? = 3,
+    val countByDice: Map<Dice, Int?> = mapOf(Dice.D6 to 1)
 )
 
 fun SelectDicesScreenState.toStats(): Stats {
-    val dicesAndCounts = countByDice.filter { it.value > 0 }.toList()
-    return Stats(DiceSet(dicesAndCounts), bonus)
+    val dicesAndCounts = countByDice.filter { (it.value ?: 0) > 0 }.map { it.key to it.value!! }.toList()
+    return Stats(DiceSet(dicesAndCounts), bonus ?: 0)
 }
 
 data class Results(

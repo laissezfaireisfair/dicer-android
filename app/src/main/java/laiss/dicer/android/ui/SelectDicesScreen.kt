@@ -66,9 +66,9 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
 
 @Composable
 fun SelectDicesLayout(
-    bonus: Int,
-    threshold: Int,
-    countByDice: Map<Dice, Int>,
+    bonus: Int?,
+    threshold: Int?,
+    countByDice: Map<Dice, Int?>,
     onBonusChanged: (String) -> Unit,
     onThresholdChanged: (String) -> Unit,
     onOkClicked: () -> Unit,
@@ -96,7 +96,7 @@ fun SelectDicesLayout(
             items(Dice.entries) {
                 DiceCountSetter(
                     dice = it,
-                    count = countByDice[it] ?: 0,
+                    count = if (!countByDice.containsKey(it)) 0 else countByDice[it],
                     onMinusClicked = { onDiceCountMinusClicked(it) },
                     onCountChanged = { count -> onDiceCountChanged(it, count) },
                     onPlusClicked = { onDiceCountPlusClicked(it) },
@@ -111,7 +111,7 @@ fun SelectDicesLayout(
 
 @Composable
 fun NumberParameterSetter(
-    name: String, value: Int, onChanged: (String) -> Unit, modifier: Modifier = Modifier
+    name: String, value: Int?, onChanged: (String) -> Unit, modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)
@@ -125,7 +125,7 @@ fun NumberParameterSetter(
 
             OutlinedTextField(
                 modifier = modifier.width(70.dp),
-                value = value.toString(),
+                value = value?.toString() ?: "",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onChanged,
             )
@@ -136,7 +136,7 @@ fun NumberParameterSetter(
 @Composable
 fun DiceCountSetter(
     dice: Dice,
-    count: Int,
+    count: Int?,
     onMinusClicked: () -> Unit,
     onCountChanged: (String) -> Unit,
     onPlusClicked: () -> Unit,
@@ -153,7 +153,7 @@ fun DiceCountSetter(
             Button(onClick = onMinusClicked) { Text(text = "-") }
 
             OutlinedTextField(
-                value = count.toString(),
+                value = count?.toString() ?: "",
                 modifier = modifier.width(70.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 onValueChange = onCountChanged
