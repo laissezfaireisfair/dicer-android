@@ -51,11 +51,13 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
                     onClick = { selectDicesViewModel.selectTab(index) }
                 )
             }
-            Tab(
-                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = "New tab") },
-                selected = false,
-                onClick = { selectDicesViewModel.createTab() }
-            )
+            if (state.layoutStates.size < SelectDicesViewModel.TABS_LIMIT) {
+                Tab(
+                    icon = { Icon(imageVector = Icons.Default.Add, contentDescription = "New tab") },
+                    selected = false,
+                    onClick = { selectDicesViewModel.createTab() }
+                )
+            }
         }
 
         val activeLayoutState = with(state) { layoutStates[activeTabIndex] }
@@ -70,7 +72,7 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
             onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
             onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
             isClosable = state.activeTabIndex > 0,
-            onCloseButtonClicked = { selectDicesViewModel.closeActiveTab()},
+            onCloseButtonClicked = { selectDicesViewModel.closeActiveTab() },
             modifier = modifier
         )
     }

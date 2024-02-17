@@ -14,6 +14,10 @@ class SelectDicesViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(SelectDicesScreenState())
     val uiState: StateFlow<SelectDicesScreenState> = _uiState.asStateFlow()
 
+    companion object {
+        const val TABS_LIMIT = 4
+    }
+
     fun updateBonus(bonusStr: String) {
         _uiState.update { it.copyWithBonus(bonusStr.toIntOrNull()) }
     }
@@ -47,7 +51,8 @@ class SelectDicesViewModel : ViewModel() {
     }
 
     fun createTab() {
-        _uiState.update { it.copyWithNewTab() }
+        if (uiState.value.layoutStates.size < TABS_LIMIT)
+            _uiState.update { it.copyWithNewTab() }
     }
 
     fun closeActiveTab() {
