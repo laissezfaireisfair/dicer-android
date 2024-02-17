@@ -35,7 +35,7 @@ class SelectDicesViewModel : ViewModel() {
         val oldCount = with(uiState.value) {
             layoutStates[activeTabIndex].countByDice[dice]
                 .takeIf { it != null && it > 0 }
-                ?: 0
+                ?: 1
         }
         updateDiceCount(dice, (oldCount - 1).toString())
     }
