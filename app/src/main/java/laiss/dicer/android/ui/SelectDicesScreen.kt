@@ -178,7 +178,7 @@ fun DiceCountSetter(
                 onValueChange = onCountChanged
             )
 
-            Text(modifier = modifier.width(32.dp), text = dice.name)
+            Text(modifier = modifier.width(50.dp), text = dice.name)
 
             Button(onClick = onPlusClicked, modifier = modifier) { Text(text = "+") }
         }
