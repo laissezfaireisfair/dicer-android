@@ -50,6 +50,10 @@ class SelectDicesViewModel : ViewModel() {
         _uiState.update { it.copyWithNewTab() }
     }
 
+    fun closeActiveTab() {
+        _uiState.update { it.copyWithClosedActiveTab() }
+    }
+
     fun getResults(): Results =
         Results(uiState.value.layoutStates.map {
             with(it.toStats()) {
@@ -88,6 +92,11 @@ data class SelectDicesScreenState(
         })
 
     fun copyWithNewTab() = copy(layoutStates = layoutStates.plus(layoutStates[activeTabIndex].copy()))
+
+    fun copyWithClosedActiveTab(): SelectDicesScreenState = when (activeTabIndex) {
+        0 -> copy()
+        else -> copy(activeTabIndex = activeTabIndex - 1, layoutStates = layoutStates - layoutStates[activeTabIndex])
+    }
 }
 
 data class SelectDicesLayoutState(

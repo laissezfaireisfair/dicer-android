@@ -69,6 +69,8 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
             onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
             onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
             onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
+            isClosable = state.activeTabIndex > 0,
+            onCloseButtonClicked = { selectDicesViewModel.closeActiveTab()},
             modifier = modifier
         )
     }
@@ -94,6 +96,8 @@ fun SelectDicesLayout(
     onDiceCountMinusClicked: (Dice) -> Unit,
     onDiceCountChanged: (Dice, String) -> Unit,
     onDiceCountPlusClicked: (Dice) -> Unit,
+    isClosable: Boolean,
+    onCloseButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -124,7 +128,12 @@ fun SelectDicesLayout(
             }
         }
 
-        Button(onClick = onOkClicked, modifier = modifier.width(150.dp)) { Text(text = "OK") }
+        Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = modifier.fillMaxWidth()) {
+            if (isClosable)
+                Button(onClick = onCloseButtonClicked, modifier = modifier.width(150.dp)) { Text(text = "Close") }
+
+            Button(onClick = onOkClicked, modifier = modifier.width(150.dp)) { Text(text = "OK") }
+        }
     }
 }
 
