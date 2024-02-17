@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,27 +40,44 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
         .safeDrawingPadding()
         .padding(3.dp)
 
-    SelectDicesLayout(
-        bonus = selectDicesViewModel.uiState.collectAsState().value.bonus,
-        threshold = selectDicesViewModel.uiState.collectAsState().value.threshold,
-        countByDice = selectDicesViewModel.uiState.collectAsState().value.countByDice,
-        onBonusChanged = { selectDicesViewModel.updateBonus(it) },
-        onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
-        onOkClicked = { results.value = selectDicesViewModel.getResults() },
-        onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
-        onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
-        onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
-        modifier = modifier
-    )
+    val state = selectDicesViewModel.uiState.collectAsState().value
+
+    Column {
+        TabRow(selectedTabIndex = state.activeTabIndex) {
+            state.layoutStates.forEachIndexed { index, _ ->
+                Tab(
+                    text = { Text(text = "Option $index") },
+                    selected = index == state.activeTabIndex,
+                    onClick = { selectDicesViewModel.selectTab(index) }
+                )
+            }
+            Tab(
+                icon = { Icon(imageVector = Icons.Default.Add, contentDescription = "New tab") },
+                selected = false,
+                onClick = { selectDicesViewModel.createTab() }
+            )
+        }
+
+        val activeLayoutState = with(state) { layoutStates[activeTabIndex] }
+        SelectDicesLayout(
+            bonus = activeLayoutState.bonus,
+            threshold = activeLayoutState.threshold,
+            countByDice = activeLayoutState.countByDice,
+            onBonusChanged = { selectDicesViewModel.updateBonus(it) },
+            onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
+            onOkClicked = { results.value = selectDicesViewModel.getResults() },
+            onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
+            onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
+            onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
+            modifier = modifier
+        )
+    }
 
     val resultsValue = results.value
     if (resultsValue != null) {
         ResultDialog(
             onDismissRequest = { results.value = null },
-            checkDescription = resultsValue.checkDescription,
-            deviation = resultsValue.deviation,
-            expectation = resultsValue.expectation,
-            probability = resultsValue.probability,
+            results = resultsValue,
             modifier = modifier
         )
     }
@@ -169,45 +188,46 @@ fun DiceCountSetter(
 @Preview(showBackground = true)
 @Composable
 fun ResultDialogPreview() {
-    with(
-        Results(
-            checkDescription = "2d4 + d6 + d8 + d12 + 5 | 20",
-            expectation = 24.5,
-            deviation = 7.3,
-            probability = 0.79
+    val exampleResults = Results(
+        layoutResults = listOf(
+            Result(
+                checkDescription = "2d4 + d6 + d8 + d12 + 5 | 20",
+                expectation = 24.5,
+                deviation = 7.3,
+                probability = 0.79
+            )
         )
-    ) {
-        ResultDialog(
-            onDismissRequest = {},
-            checkDescription = checkDescription,
-            expectation = expectation,
-            deviation = deviation,
-            probability = probability,
-            modifier = Modifier.padding(3.dp)
-        )
-    }
+    )
+
+    ResultDialog(
+        onDismissRequest = {},
+        results = exampleResults,
+        modifier = Modifier.padding(3.dp)
+    )
 }
 
 @Composable
 fun ResultDialog(
     onDismissRequest: () -> Unit,
-    checkDescription: String,
-    expectation: Double,
-    deviation: Double,
-    probability: Double,
+    results: Results,
     modifier: Modifier = Modifier,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
-        Card(modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)) {
-            Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-                OutlinedCard(modifier = modifier) {
-                    Text(text = checkDescription, modifier = modifier.padding(5.dp))
+        LazyColumn {
+            items(results.layoutResults) {
+                Card(modifier = modifier, elevation = CardDefaults.cardElevation(defaultElevation = 5.dp)) {
+                    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+                        OutlinedCard(modifier = modifier) {
+                            Text(text = it.checkDescription, modifier = modifier.padding(5.dp))
+                        }
+                        ResultEntry(name = "Expectation", value = it.expectation, modifier = modifier)
+                        ResultEntry(name = "Deviation", value = it.deviation, modifier = modifier)
+                        ResultEntry(name = "Probability", value = it.probability, modifier = modifier)
+                    }
                 }
-                ResultEntry(name = "Expectation", value = expectation, modifier = modifier)
-                ResultEntry(name = "Deviation", value = deviation, modifier = modifier)
-                ResultEntry(name = "Probability", value = probability, modifier = modifier)
             }
         }
+
     }
 }
 

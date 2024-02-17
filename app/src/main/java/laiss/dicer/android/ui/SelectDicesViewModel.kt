@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.update
 import laiss.dicer.android.model.Dice
 import laiss.dicer.android.model.DiceSet
 import laiss.dicer.android.model.Stats
-import laiss.dicer.android.model.countPassThresholdProbability
 import kotlin.math.sqrt
 
 class SelectDicesViewModel : ViewModel() {
@@ -16,51 +15,97 @@ class SelectDicesViewModel : ViewModel() {
     val uiState: StateFlow<SelectDicesScreenState> = _uiState.asStateFlow()
 
     fun updateBonus(bonusStr: String) {
-        _uiState.update { it.copy(bonus = bonusStr.toIntOrNull()) }
+        _uiState.update { it.copyWithBonus(bonusStr.toIntOrNull()) }
     }
 
     fun updateThreshold(thresholdStr: String) {
-        _uiState.update { it.copy(threshold = thresholdStr.toIntOrNull()) }
+        _uiState.update { it.copyWithThreshold(thresholdStr.toIntOrNull()) }
     }
 
     fun updateDiceCount(dice: Dice, count: String) {
-        _uiState.update {
-            it.copy(countByDice = it.countByDice.plus(dice to (count.toIntOrNull())))
-        }
+        _uiState.update { it.copyWithNewDiceCount(dice, count.toIntOrNull()) }
     }
 
     fun increaseDiceCount(dice: Dice) {
-        val oldCount = uiState.value.countByDice[dice] ?: 0
+        val oldCount = with(uiState.value) { layoutStates[activeTabIndex].countByDice[dice] ?: 0 }
         updateDiceCount(dice, (oldCount + 1).toString())
     }
 
     fun decreaseDiceCount(dice: Dice) {
-        val oldCount = uiState.value.countByDice[dice].takeIf { it != null && it > 0 } ?: 0
+        val oldCount = with(uiState.value) {
+            layoutStates[activeTabIndex].countByDice[dice]
+                .takeIf { it != null && it > 0 }
+                ?: 0
+        }
         updateDiceCount(dice, (oldCount - 1).toString())
     }
 
-    fun getResults() = with(uiState.value.toStats()) {
-        Results(
-            checkDescription = "$this | ${uiState.value.threshold}",
-            expectation = expectation,
-            deviation = sqrt(dispersion),
-            probability = countPassThresholdProbability(uiState.value.threshold ?: 0)
-        )
+    fun selectTab(index: Int) {
+        if (index !in 0..<uiState.value.layoutStates.size)
+            throw IndexOutOfBoundsException("$index")
+        _uiState.update { it.copy(activeTabIndex = index) }
     }
+
+    fun createTab() {
+        _uiState.update { it.copyWithNewTab() }
+    }
+
+    fun getResults(): Results =
+        Results(uiState.value.layoutStates.map {
+            with(it.toStats()) {
+                Result(
+                    expectation = expectation,
+                    deviation = sqrt(dispersion),
+                    probability = distribution.allPossibleOutcomes()
+                        .filter { (outcome, _) -> (it.threshold ?: 0) < outcome }
+                        .sumOf { (_, probability) -> probability },
+                    checkDescription = "$this | ${it.threshold ?: 0}"
+                )
+            }
+        })
 }
 
 data class SelectDicesScreenState(
+    val activeTabIndex: Int = 0,
+    val layoutStates: List<SelectDicesLayoutState> = listOf(SelectDicesLayoutState())
+) {
+    fun copyWithBonus(bonus: Int?): SelectDicesScreenState =
+        copy(layoutStates = layoutStates.mapIndexed { index, entry ->
+            if (index == activeTabIndex) entry.copy(bonus = bonus) else entry.copy()
+        })
+
+    fun copyWithThreshold(threshold: Int?) =
+        copy(layoutStates = layoutStates.mapIndexed { index, entry ->
+            if (index == activeTabIndex) entry.copy(threshold = threshold) else entry.copy()
+        })
+
+    fun copyWithNewDiceCount(dice: Dice, count: Int?) =
+        copy(layoutStates = layoutStates.mapIndexed { index, entry ->
+            if (index == activeTabIndex)
+                entry.copy(countByDice = entry.countByDice.plus(dice to count))
+            else
+                entry.copy()
+        })
+
+    fun copyWithNewTab() = copy(layoutStates = layoutStates.plus(layoutStates[activeTabIndex].copy()))
+}
+
+data class SelectDicesLayoutState(
     val bonus: Int? = 0,
     val threshold: Int? = 3,
     val countByDice: Map<Dice, Int?> = mapOf(Dice.D6 to 1)
 )
 
-fun SelectDicesScreenState.toStats(): Stats {
+fun SelectDicesLayoutState.toStats(): Stats {
     val dicesAndCounts = countByDice.filter { (it.value ?: 0) > 0 }.map { it.key to it.value!! }.toList()
     return Stats(DiceSet(dicesAndCounts), bonus ?: 0)
 }
 
 data class Results(
+    val layoutResults: List<Result>
+)
+
+data class Result(
     val checkDescription: String,
     val expectation: Double,
     val deviation: Double,
