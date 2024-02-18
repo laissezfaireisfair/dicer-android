@@ -66,7 +66,7 @@ class SelectDicesViewModel : ViewModel() {
                     expectation = expectation,
                     deviation = sqrt(dispersion),
                     probability = distribution.allPossibleOutcomes()
-                        .filter { (outcome, _) -> (it.threshold ?: 0) < outcome }
+                        .filter { (outcome, _) -> (it.threshold ?: 0) <= outcome }
                         .sumOf { (_, probability) -> probability },
                     checkDescription = "$this | ${it.threshold ?: 0}"
                 )
