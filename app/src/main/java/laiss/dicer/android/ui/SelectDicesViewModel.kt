@@ -98,9 +98,12 @@ data class SelectDicesScreenState(
 
     fun copyWithNewTab() = copy(layoutStates = layoutStates.plus(layoutStates[activeTabIndex].copy()))
 
-    fun copyWithClosedActiveTab(): SelectDicesScreenState = when (activeTabIndex) {
-        0 -> copy()
-        else -> copy(activeTabIndex = activeTabIndex - 1, layoutStates = layoutStates - layoutStates[activeTabIndex])
+    fun copyWithClosedActiveTab(): SelectDicesScreenState = when (layoutStates.size) {
+        1 -> copy()
+        else -> copy(
+            activeTabIndex = (activeTabIndex - 1).takeIf { it > 0 } ?: (layoutStates.size - 2),
+            layoutStates = layoutStates - layoutStates[activeTabIndex]
+        )
     }
 }
 

@@ -71,7 +71,7 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
             onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
             onDiceCountChanged = { dice, count -> selectDicesViewModel.updateDiceCount(dice, count) },
             onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
-            isClosable = state.activeTabIndex > 0,
+            isClosable = state.layoutStates.size > 1,
             onCloseButtonClicked = { selectDicesViewModel.closeActiveTab() },
             modifier = modifier
         )
