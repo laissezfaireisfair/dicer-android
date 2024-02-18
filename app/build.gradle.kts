@@ -11,8 +11,8 @@ android {
         applicationId = "laiss.dicer.android"
         minSdk = 28
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.21"
+        versionCode = 4
+        versionName = "0.22"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
