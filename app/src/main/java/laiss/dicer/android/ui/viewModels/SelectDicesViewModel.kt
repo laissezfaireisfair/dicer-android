@@ -1,4 +1,4 @@
-package laiss.dicer.android.ui
+package laiss.dicer.android.ui.viewModels
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,41 +37,35 @@ class SelectDicesViewModel : ViewModel() {
 
     fun decreaseDiceCount(dice: Dice) {
         val oldCount = with(uiState.value) {
-            layoutStates[activeTabIndex].countByDice[dice]
-                .takeIf { it != null && it > 0 }
-                ?: 1
+            layoutStates[activeTabIndex].countByDice[dice].takeIf { it != null && it > 0 } ?: 1
         }
         updateDiceCount(dice, (oldCount - 1).toString())
     }
 
     fun selectTab(index: Int) {
-        if (index !in 0..<uiState.value.layoutStates.size)
-            throw IndexOutOfBoundsException("$index")
+        if (index !in 0..<uiState.value.layoutStates.size) throw IndexOutOfBoundsException("$index")
         _uiState.update { it.copy(activeTabIndex = index) }
     }
 
     fun createTab() {
-        if (uiState.value.layoutStates.size < TABS_LIMIT)
-            _uiState.update { it.copyWithNewTab() }
+        if (uiState.value.layoutStates.size < TABS_LIMIT) _uiState.update { it.copyWithNewTab() }
     }
 
     fun closeActiveTab() {
         _uiState.update { it.copyWithClosedActiveTab() }
     }
 
-    fun getResults(): Results =
-        Results(uiState.value.layoutStates.map {
-            with(it.toStats()) {
-                Result(
-                    expectation = expectation,
-                    deviation = sqrt(dispersion),
-                    probability = distribution.allPossibleOutcomes()
-                        .filter { (outcome, _) -> (it.threshold ?: 0) <= outcome }
-                        .sumOf { (_, probability) -> probability },
-                    checkDescription = "$this | ${it.threshold ?: 0}"
-                )
-            }
-        })
+    fun getResults(): Results = Results(uiState.value.layoutStates.map {
+        with(it.toStats()) {
+            Result(expectation = expectation,
+                deviation = sqrt(dispersion),
+                probability = distribution.allPossibleOutcomes()
+                    .filter { (outcome, _) -> (it.threshold ?: 0) <= outcome }
+                    .sumOf { (_, probability) -> probability },
+                checkDescription = "$this | ${it.threshold ?: 0}"
+            )
+        }
+    })
 }
 
 data class SelectDicesScreenState(
@@ -90,20 +84,18 @@ data class SelectDicesScreenState(
 
     fun copyWithNewDiceCount(dice: Dice, count: Int?) =
         copy(layoutStates = layoutStates.mapIndexed { index, entry ->
-            if (index == activeTabIndex)
-                entry.copy(countByDice = entry.countByDice.plus(dice to count))
-            else
-                entry.copy()
+            if (index == activeTabIndex) entry.copy(countByDice = entry.countByDice.plus(dice to count))
+            else entry.copy()
         })
 
-    fun copyWithNewTab() = copy(layoutStates = layoutStates.plus(layoutStates[activeTabIndex].copy()))
+    fun copyWithNewTab() =
+        copy(layoutStates = layoutStates.plus(layoutStates[activeTabIndex].copy()))
 
     fun copyWithClosedActiveTab(): SelectDicesScreenState = when (layoutStates.size) {
         1 -> copy()
-        else -> copy(
-            activeTabIndex = (activeTabIndex - 1).takeIf { it > 0 } ?: (layoutStates.size - 2),
-            layoutStates = layoutStates - layoutStates[activeTabIndex]
-        )
+        else -> copy(activeTabIndex = (activeTabIndex - 1).takeIf { it > 0 }
+            ?: (layoutStates.size - 2),
+            layoutStates = layoutStates - layoutStates[activeTabIndex])
     }
 }
 
@@ -114,7 +106,8 @@ data class SelectDicesLayoutState(
 )
 
 fun SelectDicesLayoutState.toStats(): Stats {
-    val dicesAndCounts = countByDice.filter { (it.value ?: 0) > 0 }.map { it.key to it.value!! }.toList()
+    val dicesAndCounts =
+        countByDice.filter { (it.value ?: 0) > 0 }.map { it.key to it.value!! }.toList()
     return Stats(DiceSet(dicesAndCounts), bonus ?: 0)
 }
 
