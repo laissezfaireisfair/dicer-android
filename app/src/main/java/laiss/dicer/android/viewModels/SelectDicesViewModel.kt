@@ -1,4 +1,4 @@
-package laiss.dicer.android.ui.viewModels
+package laiss.dicer.android.viewModels
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
