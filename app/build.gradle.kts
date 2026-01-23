@@ -3,6 +3,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
+}
+
 android {
     namespace = "laiss.dicer.android"
     compileSdk = 36
@@ -25,9 +32,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
-    }
-    kotlin {
-        jvmToolchain(21)
     }
     buildFeatures {
         compose = true

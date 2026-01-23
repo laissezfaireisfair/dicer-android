@@ -1,20 +1,11 @@
 package laiss.dicer.android.model
 
+import arrow.core.raise.context.either
+import arrow.core.raise.context.ensure
 import kotlin.math.pow
 
 enum class Dice(val faces: Int) {
-    D2(2),
-    D4(4),
-    D6(6),
-    D8(8),
-    D10(10),
-    D12(12),
-    D20(20),
-    D100(100);
-
-    companion object {
-        fun fromFaces(faces: Int): Dice? = Dice.entries.firstOrNull { it.faces == faces }
-    }
+    D2(2), D4(4), D6(6), D8(8), D10(10), D12(12), D20(20), D100(100);
 
     val expectation: Double by lazy { (1.0 + faces) / 2 }
 
@@ -29,34 +20,38 @@ enum class Dice(val faces: Int) {
     override fun toString(): String = "d$faces"
 }
 
-class DiceSet(private val dicesAndCounts: List<Pair<Dice, Int>>) {
-    val expectation: Double by lazy { dicesAndCounts.sumOf { (dice, count) -> dice.expectation * count } }
+class DiceSet private constructor(private val countByDice: Map<Dice, Int>) {
+    val expectation: Double by lazy {
+        countByDice.asSequence().sumOf { (dice, count) -> dice.expectation * count }
+    }
 
-    val dispersion: Double by lazy { dicesAndCounts.sumOf { (dice, count) -> dice.dispersion * count } }
+    val dispersion: Double by lazy {
+        countByDice.asSequence().sumOf { (dice, count) -> dice.dispersion * count }
+    }
 
     val distribution: Distribution by lazy {
-        Distribution()
-            .apply { set(0.0, 1.0) }
-            .apply {
-                dicesAndCounts
-                    .asSequence()
-                    .map { (dice, count) -> generateSequence(dice) { it }.take(count) }
-                    .flatten()
-                    .forEach { plusAssign(it.distribution) }
-            }
+        Distribution().apply { set(0.0, 1.0) }.apply {
+            countByDice.asSequence()
+                .map { (dice, count) -> generateSequence(dice) { it }.take(count) }.flatten()
+                .forEach { plusAssign(it.distribution) }
+        }
     }
 
-    override fun toString(): String = dicesAndCounts
-        .filter { (_, count) -> count > 0 }
-        .map { (dice, count) -> if (count > 1) "$count$dice" else "$dice"}
+    override fun toString(): String = countByDice.filter { (_, count) -> count > 0 }
+        .map { (dice, count) -> if (count > 1) "$count$dice" else "$dice" }
         .joinToString(" + ") { it }
+
+    companion object {
+        fun create(countByDice: Map<Dice, Int>) = either {
+            ensure(countByDice.values.all { it >= 0 }) { NegativeDiceCount }
+            DiceSet(countByDice)
+        }
+    }
 }
 
-class Stats(private val diceSet: DiceSet, private val bonus: Int) {
-    companion object {
-        fun emptyStats() = Stats(DiceSet(emptyList()), 0)
-    }
+data object NegativeDiceCount
 
+class Stats(private val diceSet: DiceSet, private val bonus: Int) {
     val expectation: Double by lazy { diceSet.expectation + bonus }
 
     val dispersion: Double by lazy { diceSet.dispersion }
@@ -72,11 +67,13 @@ class Stats(private val diceSet: DiceSet, private val bonus: Int) {
     override fun toString() = if (bonus > 0) "$diceSet + $bonus" else "$diceSet"
 }
 
-fun Stats.countPassThresholdProbability(threshold: Int): Double =
-    this.distribution
-        .takeIf { it.isCorrect }
-        ?.allPossibleOutcomes()
-        ?.asSequence()
-        ?.filter { (value, _) -> value > threshold }
-        ?.sumOf { (_, probability) -> probability }
-        ?: throw RuntimeException("Dices.Distribution is incorrect:\n${this.distribution.allPossibleOutcomes()}")
+fun Stats.countPassThresholdProbability(threshold: Int) = either {
+    ensure(distribution.isCorrect) { IncorrectDistribution }
+    distribution
+        .allPossibleOutcomes()
+        .asSequence()
+        .filter { (value, _) -> value > threshold }
+        .sumOf { (_, probability) -> probability }
+}
+
+data object IncorrectDistribution

@@ -5,7 +5,8 @@ class Distribution {
     private val allowedDeviation = 1e-10
 
     val isCorrect: Boolean
-        get() = probabilityByValue.values.sum() in 0.0 - allowedDeviation..1.0 + allowedDeviation
+        get() = probabilityByValue.values.sum() in
+                0.0 - allowedDeviation..1.0 + allowedDeviation
 
     operator fun get(value: Double): Double = probabilityByValue[value] ?: 0.0
 

@@ -42,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import arrow.core.Either
 import laiss.dicer.android.model.Dice
+import laiss.dicer.android.model.NegativeDiceCount
 import laiss.dicer.android.ui.theme.DicerTheme
 import laiss.dicer.android.viewModels.Result
 import laiss.dicer.android.viewModels.Results
@@ -55,7 +57,7 @@ fun SelectDicesScreenPreview() = DicerTheme { SelectDicesScreen() }
 
 @Composable
 fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) {
-    val results = remember { mutableStateOf<Results?>(null) }
+    val results = remember { mutableStateOf<Either<NegativeDiceCount, Results>?>(null) }
     val modifier = Modifier
         .statusBarsPadding()
         .safeDrawingPadding()
@@ -103,7 +105,7 @@ fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) 
         }
     }
 
-    val resultsValue = results.value
+    val resultsValue = results.value?.getOrNull()
     if (resultsValue != null) {
         ResultDialog(
             onDismissRequest = { results.value = null }, results = resultsValue, modifier = modifier

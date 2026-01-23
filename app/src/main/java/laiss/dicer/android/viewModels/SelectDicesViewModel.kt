@@ -1,6 +1,8 @@
 package laiss.dicer.android.viewModels
 
 import androidx.lifecycle.ViewModel
+import arrow.core.raise.context.bind
+import arrow.core.raise.context.either
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,17 +57,22 @@ class SelectDicesViewModel : ViewModel() {
         _uiState.update { it.copyWithClosedActiveTab() }
     }
 
-    fun getResults(): Results = Results(uiState.value.layoutStates.map {
-        with(it.toStats()) {
-            Result(expectation = expectation,
-                deviation = sqrt(dispersion),
-                probability = distribution.allPossibleOutcomes()
-                    .filter { (outcome, _) -> (it.threshold ?: 0) <= outcome }
-                    .sumOf { (_, probability) -> probability },
-                checkDescription = "$this | ${it.threshold ?: 0}"
-            )
-        }
-    })
+    fun getResults() = either {
+        uiState.value.layoutStates
+            .map { layoutState ->
+                with(layoutState.toStats().bind()) {
+                    Result(
+                        expectation = expectation,
+                        deviation = sqrt(dispersion),
+                        probability = distribution.allPossibleOutcomes()
+                            .filter { (outcome, _) -> (layoutState.threshold ?: 0) <= outcome }
+                            .sumOf { (_, probability) -> probability },
+                        checkDescription = "$this | ${layoutState.threshold ?: 0}"
+                    )
+                }
+            }
+            .let { results -> Results(results) }
+    }
 }
 
 data class SelectDicesScreenState(
@@ -105,10 +112,12 @@ data class SelectDicesLayoutState(
     val countByDice: Map<Dice, Int?> = mapOf(Dice.D6 to 1)
 )
 
-fun SelectDicesLayoutState.toStats(): Stats {
-    val dicesAndCounts =
-        countByDice.filter { (it.value ?: 0) > 0 }.map { it.key to it.value!! }.toList()
-    return Stats(DiceSet(dicesAndCounts), bonus ?: 0)
+fun SelectDicesLayoutState.toStats() = either {
+    val dicesAndCounts = countByDice
+        .filter { (it.value ?: 0) > 0 }
+        .map { it.key to it.value!! }
+        .toMap()
+    Stats(DiceSet.create(dicesAndCounts).bind(), bonus ?: 0)
 }
 
 data class Results(
