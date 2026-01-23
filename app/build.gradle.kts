@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.agp)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -41,6 +40,10 @@ android {
 }
 
 dependencies {
+    implementation(project.dependencies.platform(libs.arrow.stack))
+    implementation(libs.arrow.core)
+    implementation(libs.arrow.core.serialization)
+    implementation(libs.arrow.fxCoroutines)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
