@@ -41,7 +41,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
 import arrow.core.Either
 import laiss.dicer.android.model.Dice
 import laiss.dicer.android.model.NegativeDiceCount
@@ -49,6 +48,7 @@ import laiss.dicer.android.ui.theme.DicerTheme
 import laiss.dicer.android.viewModels.Result
 import laiss.dicer.android.viewModels.Results
 import laiss.dicer.android.viewModels.SelectDicesViewModel
+import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
 
 @Composable
@@ -56,7 +56,7 @@ import java.util.Locale
 fun SelectDicesScreenPreview() = DicerTheme { SelectDicesScreen() }
 
 @Composable
-fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = viewModel()) {
+fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = koinViewModel()) {
     val results = remember { mutableStateOf<Either<NegativeDiceCount, Results>?>(null) }
     val modifier = Modifier
         .statusBarsPadding()
