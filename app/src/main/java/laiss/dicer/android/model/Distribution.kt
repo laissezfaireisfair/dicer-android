@@ -4,20 +4,21 @@ class Distribution {
     private val probabilityByValue = mutableMapOf<Double, Double>()
     private val allowedDeviation = 1e-10
 
-    val isCorrect: Boolean
+    val isCorrect
         get() = probabilityByValue.values.sum() in
                 0.0 - allowedDeviation..1.0 + allowedDeviation
 
-    operator fun get(value: Double): Double = probabilityByValue[value] ?: 0.0
+    operator fun get(value: Double) = probabilityByValue[value] ?: 0.0
 
-    operator fun set(value: Double, probability: Double) =
-        run { probabilityByValue[value] = probability }
+    operator fun set(value: Double, probability: Double) {
+        probabilityByValue[value] = probability
+    }
 
-    operator fun plus(other: Distribution): Distribution {
+    operator fun plus(other: Distribution) = run {
         val values = allPossibleOutcomes()
         val otherValues = other.allPossibleOutcomes()
 
-        return Distribution().apply {
+        Distribution().apply {
             values.forEach { (value, probability) ->
                 otherValues.forEach { this[value + it.first] += probability * it.second }
             }
@@ -25,20 +26,16 @@ class Distribution {
     }
 
     operator fun plusAssign(other: Distribution) {
-        val sum = plus(other)
-        probabilityByValue
-            .apply { clear() }
-            .apply {
-                sum.probabilityByValue.forEach { (value, probability) ->
-                    this[value] = probability
-                }
-            }
+        val sum = this + other
+        probabilityByValue.clear()
+        sum.probabilityByValue.forEach { (value, probability) ->
+            this[value] = probability
+        }
     }
 
     fun allPossibleOutcomes() = probabilityByValue.toList()
 
-    override fun toString() =
-        allPossibleOutcomes().map { (value, probability) -> "$value: $probability" }
-            .joinToString("\n") { it }
+    override fun toString() = allPossibleOutcomes()
+        .joinToString("\n") { (value, probability) -> "$value: $probability" }
 }
 

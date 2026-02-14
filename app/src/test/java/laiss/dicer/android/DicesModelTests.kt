@@ -1,9 +1,6 @@
 package laiss.dicer.android
 
 import laiss.dicer.android.model.Dice
-import org.junit.Test
-
-import org.junit.Assert.*
 
 class DicesModelTests {
     @Test
