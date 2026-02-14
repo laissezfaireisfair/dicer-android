@@ -12,7 +12,9 @@ val appKoinModule = module {
     single<CoroutineDispatcher>(named(InjectedCoroutineDispatcher.Default)) { Dispatchers.Default }
     single<CoroutineDispatcher>(named(InjectedCoroutineDispatcher.IO)) { Dispatchers.IO }
 
-    viewModel { SelectDicesViewModel() }
+    viewModel {
+        SelectDicesViewModel(defaultDispatcher = get(named(InjectedCoroutineDispatcher.Default)))
+    }
 }
 
 enum class InjectedCoroutineDispatcher { Main, Default, IO }

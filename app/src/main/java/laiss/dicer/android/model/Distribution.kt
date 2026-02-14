@@ -38,4 +38,3 @@ class Distribution {
     override fun toString() = allPossibleOutcomes()
         .joinToString("\n") { (value, probability) -> "$value: $probability" }
 }
-

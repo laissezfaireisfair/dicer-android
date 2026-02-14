@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -26,13 +24,11 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,90 +37,116 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import arrow.core.Either
+import arrow.core.NonEmptyList
+import arrow.core.nonEmptyListOf
+import arrow.core.right
+import arrow.core.separateEither
 import laiss.dicer.android.model.Dice
-import laiss.dicer.android.model.NegativeDiceCount
 import laiss.dicer.android.ui.theme.DicerTheme
-import laiss.dicer.android.viewModels.Result
-import laiss.dicer.android.viewModels.Results
+import laiss.dicer.android.uiStates.Estimate
+import laiss.dicer.android.uiStates.EstimateError
+import laiss.dicer.android.uiStates.SelectDicesScreenState
 import laiss.dicer.android.viewModels.SelectDicesViewModel
+import laiss.dicer.android.viewModels.isTabsLimitReached
 import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
 
 @Composable
-@Preview(backgroundColor = 0xff24273a, showBackground = true, showSystemUi = false)
-fun SelectDicesScreenPreview() = DicerTheme { SelectDicesScreen() }
+internal fun SelectDicesScreen(viewModel: SelectDicesViewModel = koinViewModel()) {
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    ScreenBody(
+        state = state,
+        onOpenTabClick = viewModel::openNewTab,
+        onTabSelected = viewModel::selectTab,
+        onBonusChanged = viewModel::updateBonus,
+        onThresholdChanged = viewModel::updateThreshold,
+        onOkClicked = viewModel::calculateEstimates,
+        onDiceCountMinusClicked = viewModel::decreaseDiceCount,
+        onDiceCountChanged = viewModel::updateDiceCount,
+        onDiceCountPlusClicked = viewModel::increaseDiceCount,
+        onCloseButtonClicked = viewModel::closeActiveTab,
+        onEstimateDialogDismissed = viewModel::closeEstimates,
+    )
+}
 
 @Composable
-fun SelectDicesScreen(selectDicesViewModel: SelectDicesViewModel = koinViewModel()) {
-    val results = remember { mutableStateOf<Either<NegativeDiceCount, Results>?>(null) }
-    val modifier = Modifier
-        .statusBarsPadding()
-        .safeDrawingPadding()
-        .padding(3.dp)
-
-    val state = selectDicesViewModel.uiState.collectAsState().value
-
-    Surface(color = MaterialTheme.colorScheme.background) {
-        Column {
-            TabRow(selectedTabIndex = state.activeTabIndex) {
+private fun ScreenBody(
+    state: SelectDicesScreenState,
+    onOpenTabClick: () -> Unit = {},
+    onTabSelected: (Int) -> Unit = {},
+    onBonusChanged: (String) -> Unit = {},
+    onThresholdChanged: (String) -> Unit = {},
+    onOkClicked: () -> Unit = {},
+    onDiceCountMinusClicked: (Dice) -> Unit = {},
+    onDiceCountChanged: (Dice, String) -> Unit = { _, _ -> },
+    onDiceCountPlusClicked: (Dice) -> Unit = {},
+    onCloseButtonClicked: () -> Unit = {},
+    onEstimateDialogDismissed: () -> Unit = {},
+) {
+    Scaffold { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+            SecondaryTabRow(selectedTabIndex = state.activeTabIndex) {
                 state.layoutStates.forEachIndexed { index, _ ->
                     Tab(
                         text = { Text(text = "Option $index") },
                         selected = index == state.activeTabIndex,
-                        onClick = { selectDicesViewModel.selectTab(index) })
+                        onClick = { onTabSelected(index) }
+                    )
                 }
-                if (state.layoutStates.size < SelectDicesViewModel.TABS_LIMIT) {
-                    Tab(icon = {
-                        Icon(
-                            imageVector = Icons.Default.Add, contentDescription = "New tab"
-                        )
-                    }, selected = false, onClick = { selectDicesViewModel.createTab() })
+                if (!state.isTabsLimitReached) {
+                    Tab(
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "New tab"
+                            )
+                        },
+                        selected = false,
+                        onClick = onOpenTabClick
+                    )
                 }
             }
-
-            val activeLayoutState = with(state) { layoutStates[activeTabIndex] }
-            SelectDicesLayout(
+            val activeLayoutState = remember(state.layoutStates to state.activeTabIndex) {
+                state.run { layoutStates[activeTabIndex] }
+            }
+            StatsSetter(
                 bonus = activeLayoutState.bonus,
                 threshold = activeLayoutState.threshold,
                 countByDice = activeLayoutState.countByDice,
-                onBonusChanged = { selectDicesViewModel.updateBonus(it) },
-                onThresholdChanged = { selectDicesViewModel.updateThreshold(it) },
-                onOkClicked = { results.value = selectDicesViewModel.getResults() },
-                onDiceCountMinusClicked = { selectDicesViewModel.decreaseDiceCount(it) },
-                onDiceCountChanged = { dice, count ->
-                    selectDicesViewModel.updateDiceCount(
-                        dice, count
-                    )
-                },
-                onDiceCountPlusClicked = { selectDicesViewModel.increaseDiceCount(it) },
                 isClosable = state.layoutStates.size > 1,
-                onCloseButtonClicked = { selectDicesViewModel.closeActiveTab() },
-                modifier = modifier
+                onBonusChanged = onBonusChanged,
+                onThresholdChanged = onThresholdChanged,
+                onOkClicked = onOkClicked,
+                onDiceCountMinusClicked = onDiceCountMinusClicked,
+                onDiceCountChanged = onDiceCountChanged,
+                onDiceCountPlusClicked = onDiceCountPlusClicked,
+                onCloseButtonClicked = onCloseButtonClicked,
             )
         }
-    }
-
-    val resultsValue = results.value?.getOrNull()
-    if (resultsValue != null) {
-        ResultDialog(
-            onDismissRequest = { results.value = null }, results = resultsValue, modifier = modifier
-        )
+        if (state.estimates != null) {
+            EstimatesDialog(
+                estimatesAndErrors = state.estimates,
+                onDismissRequest = onEstimateDialogDismissed,
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
     }
 }
 
 @Composable
-fun SelectDicesLayout(
+private fun StatsSetter(
     bonus: Int?,
     threshold: Int?,
     countByDice: Map<Dice, Int?>,
+    isClosable: Boolean,
     onBonusChanged: (String) -> Unit,
     onThresholdChanged: (String) -> Unit,
     onOkClicked: () -> Unit,
     onDiceCountMinusClicked: (Dice) -> Unit,
     onDiceCountChanged: (Dice, String) -> Unit,
     onDiceCountPlusClicked: (Dice) -> Unit,
-    isClosable: Boolean,
     onCloseButtonClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -133,21 +155,25 @@ fun SelectDicesLayout(
         verticalArrangement = Arrangement.SpaceAround,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
             NumberParameterSetter(
-                name = "Bonus", value = bonus, onChanged = onBonusChanged, modifier = modifier
+                name = "Bonus",
+                value = bonus,
+                onChanged = onBonusChanged,
             )
 
             NumberParameterSetter(
                 name = "Threshold",
                 value = threshold,
                 onChanged = onThresholdChanged,
-                modifier = modifier
             )
         }
 
         LazyColumn(
-            modifier = modifier.padding(horizontal = 16.dp),
+            modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             items(Dice.entries) {
@@ -157,24 +183,37 @@ fun SelectDicesLayout(
                     onMinusClicked = { onDiceCountMinusClicked(it) },
                     onCountChanged = { count -> onDiceCountChanged(it, count) },
                     onPlusClicked = { onDiceCountPlusClicked(it) },
-                    modifier = modifier
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
         }
 
         Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = modifier.fillMaxWidth()) {
-            if (isClosable) OutlinedButton(
-                onClick = onCloseButtonClicked, modifier = modifier.width(150.dp)
-            ) { Text(text = "Close") }
+            if (isClosable) {
+                OutlinedButton(
+                    onClick = onCloseButtonClicked,
+                    modifier = Modifier.width(150.dp)
+                ) {
+                    Text(text = "Close")
+                }
+            }
 
-            Button(onClick = onOkClicked, modifier = modifier.width(150.dp)) { Text(text = "OK") }
+            Button(
+                onClick = onOkClicked,
+                modifier = Modifier.width(150.dp)
+            ) {
+                Text(text = "OK")
+            }
         }
     }
 }
 
 @Composable
-fun NumberParameterSetter(
-    name: String, value: Int?, onChanged: (String) -> Unit, modifier: Modifier = Modifier
+private fun NumberParameterSetter(
+    name: String,
+    value: Int?,
+    onChanged: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     ElevatedCard(modifier = Modifier) {
         Row(
@@ -195,7 +234,7 @@ fun NumberParameterSetter(
 }
 
 @Composable
-fun DiceCountSetter(
+private fun DiceCountSetter(
     dice: Dice,
     count: Int?,
     onMinusClicked: () -> Unit,
@@ -229,52 +268,39 @@ fun DiceCountSetter(
 
             Text(modifier = modifier.width(50.dp), text = dice.name)
 
-            IconButton(onClick = onPlusClicked, colors = with(MaterialTheme.colorScheme) {
-                IconButtonDefaults.iconButtonColors(
-                    containerColor = surface,
-                    contentColor = primary,
-                    disabledContainerColor = secondary,
-                    disabledContentColor = onSecondary
-                )
-            }) { Icon(Icons.Filled.KeyboardArrowUp, "add") }
+            IconButton(
+                onClick = onPlusClicked,
+                colors = with(MaterialTheme.colorScheme) {
+                    IconButtonDefaults.iconButtonColors(
+                        containerColor = surface,
+                        contentColor = primary,
+                        disabledContainerColor = secondary,
+                        disabledContentColor = onSecondary
+                    )
+                }
+            ) {
+                Icon(Icons.Filled.KeyboardArrowUp, "add")
+            }
         }
     }
 }
 
-@Preview(backgroundColor = 0xff24273a, showBackground = true)
 @Composable
-fun ResultDialogPreview() {
-    val exampleResults = Results(
-        layoutResults = listOf(
-            Result(
-                checkDescription = "2d4 + d6 + d8 + d12 + 5 | 20",
-                expectation = 24.5,
-                deviation = 7.3,
-                probability = 0.79
-            )
-        )
-    )
-
-    DicerTheme {
-        ResultDialog(
-            onDismissRequest = {},
-            results = exampleResults,
-            modifier = Modifier.padding(3.dp)
-        )
-    }
-}
-
-@Composable
-fun ResultDialog(
-    onDismissRequest: () -> Unit, results: Results, modifier: Modifier = Modifier
+private fun EstimatesDialog(
+    estimatesAndErrors: NonEmptyList<Either<EstimateError, Estimate>>,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
+        val (errors, estimates) = remember(estimatesAndErrors) {
+            estimatesAndErrors.separateEither()
+        }
         LazyColumn(
             modifier = modifier,
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            items(results.layoutResults) {
+            items(estimates) {
                 ElevatedCard {
                     Column(
                         modifier = Modifier.padding(7.dp),
@@ -328,7 +354,40 @@ fun ResultDialog(
                     }
                 }
             }
-        }
+            items(errors) { error ->
+                when (error) {
+                    EstimateError.IncorrectDistribution -> Text(
+                        text = "Distribution validation failed"
+                    )
 
+                    EstimateError.NegativeDiceCount -> Text(text = "Negative dice count")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@Preview
+private fun ScreenPreview() = DicerTheme {
+    ScreenBody(state = SelectDicesScreenState())
+}
+
+@Preview
+@Composable
+private fun EstimatesDialogPreview() {
+    DicerTheme {
+        EstimatesDialog(
+            estimatesAndErrors = nonEmptyListOf(
+                Estimate(
+                    checkDescription = "2d4 + d6 + d8 + d12 + 5 | 20",
+                    expectation = 24.5,
+                    deviation = 7.3,
+                    probability = 0.79
+                ).right()
+            ),
+            onDismissRequest = {},
+            modifier = Modifier.padding(3.dp)
+        )
     }
 }

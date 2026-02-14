@@ -1,8 +1,10 @@
+import arrow.optics.plugin.arrowOptics
 import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     alias(libs.plugins.agp)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.arrow.optics)
 }
 
 kotlin {
@@ -10,6 +12,7 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-parameters")
     }
+    arrowOptics()
 }
 
 configure<ApplicationExtension> {
@@ -48,6 +51,7 @@ dependencies {
     implementation(libs.arrow.core)
     implementation(libs.arrow.core.serialization)
     implementation(libs.arrow.fxCoroutines)
+    implementation(libs.arrow.optics)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.runtime.ktx)
     implementation(libs.activity.compose)
